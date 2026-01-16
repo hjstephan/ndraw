@@ -1,0 +1,59 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ndraw"
+version = "1.0.0"
+description = "Vector Network Designer Pro - Eine PyQt Anwendung zum Zeichnen von Netzwerken"
+readme = "README.md"
+requires-python = ">=3.8"
+authors = [
+    {name = "Stephan", email = "stephan@example.com"}
+]
+dependencies = [
+    "PyQt6>=6.5.0",
+]
+
+[project.optional-dependencies]
+test = [
+    "pytest>=7.4.0",
+    "pytest-qt>=4.2.0",
+    "pytest-cov>=4.1.0",
+]
+
+[project.scripts]
+ndraw = "src.ndraw:main"
+
+[tool.setuptools]
+packages = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py", "*_test.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+addopts = [
+    "-v",
+    "--strict-markers",
+    "--tb=short",
+]
+markers = [
+    "slow: markiert Tests als langsam",
+    "gui: markiert GUI-Tests",
+    "integration: markiert Integrationstests",
+    "unit: markiert Unit-Tests",
+]
+
+[tool.coverage.run]
+source = ["src"]
+omit = ["*/tests/*", "*/venv/*"]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "if __name__ == .__main__.:",
+    "raise AssertionError",
+    "raise NotImplementedError",
+]
