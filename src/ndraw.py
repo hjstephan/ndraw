@@ -25,6 +25,9 @@ class Node(QGraphicsEllipseItem):
         self.label.setDefaultTextColor(Qt.GlobalColor.white)
         font = QFont("Arial", 10, QFont.Weight.Bold)
         self.label.setFont(font)
+
+        self.label.setTextInteractionFlags(Qt.TextInteractionFlag.NoTextInteraction) 
+        self.label.setTabChangesFocus(True) 
         self.update_label_position()
 
     def update_label_position(self):
@@ -114,26 +117,44 @@ class NetworkCanvas(QGraphicsView):
             if isinstance(item, Node):
                 self.edit_node_label(item)
 
-    def mouseDoubleClickEvent(self, event):
-        """Doppelklick auf einen Knoten öffnet den Label-Editor."""
-        item = self.itemAt(event.pos())
-        if isinstance(item, QGraphicsTextItem) and isinstance(item.parentItem(), Node):
-            item = item.parentItem()
-        if isinstance(item, Node):
-            self.edit_node_label(item)
-        else:
-            super().mouseDoubleClickEvent(event)
-
     def edit_node_label(self, node):
-        """Öffnet einen Dialog zum Bearbeiten des Knoten-Labels."""
-        text, ok = QInputDialog.getText(
-            None, 
-            "Knoten beschriften", 
-            f"Label für Knoten {node.node_id}:",
-            text=node.label_text
-        )
-        if ok and text:
-            node.set_label(text)
+        """Aktiviert den Text-Cursor direkt im Knoten-Label."""
+        label = node.label
+        # Aktiviere die Texteingabe
+        label.setTextInteractionFlags(Qt.TextInteractionFlag.TextEditorInteraction)
+        label.setFocus()
+        
+        # Cursor ans Ende setzen
+        cursor = label.textCursor()
+        cursor.movePosition(cursor.MoveOperation.End)
+        label.setTextCursor(cursor)
+
+        # Wichtig: Wenn das Label den Fokus verliert, speichern wir den Text
+        label.focusOutEvent = lambda event: self.finish_label_edit(node, event)
+    
+    def finish_label_edit(self, node, event):
+        """Fixiert den Text und zentriert das Label neu."""
+        # Standard-Verhalten für FocusOut aufrufen
+        QGraphicsTextItem.focusOutEvent(node.label, event)
+        
+        # Bearbeitung sperren und neu zentrieren
+        node.label.setTextInteractionFlags(Qt.TextInteractionFlag.NoTextInteraction)
+        node.label_text = node.label.toPlainText()
+        node.update_label_position()
+    
+    def keyPressEvent(self, event):
+        if event.key() == Qt.Key.Key_F2:
+            # Sucht das Item direkt unter dem Mauszeiger
+            pos = self.mapFromGlobal(self.cursor().pos())
+            item = self.itemAt(pos)
+            
+            if isinstance(item, QGraphicsTextItem) and isinstance(item.parentItem(), Node):
+                item = item.parentItem()
+            
+            if isinstance(item, Node):
+                self.edit_node_label(item)
+        else:
+            super().keyPressEvent(event)
 
     def add_new_node(self, x, y, node_id, label=None):
         node = Node(x, y, node_id, label)
@@ -162,7 +183,7 @@ class MainWindow(QMainWindow):
         btn_load.clicked.connect(self.load_json)
         btn_save = QPushButton("JSON Speichern")
         btn_save.clicked.connect(self.save_json)
-        btn_svg = QPushButton("SVG Export (Cropped)")
+        btn_svg = QPushButton("SVG Export")
         btn_svg.clicked.connect(self.export_svg)
         
         toolbar.addWidget(btn_load)

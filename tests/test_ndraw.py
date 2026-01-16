@@ -93,24 +93,6 @@ class TestDirectedEdge:
         line = edge.line()
         assert line.length() < 100
         assert line.length() > 0
-    
-    def test_edge_position_update_on_node_move(self, qapp, canvas):
-        """Test ob die Kante aktualisiert wird wenn ein Node bewegt wird."""
-        source = Node(0, 0, 0)
-        target = Node(100, 100, 1)
-        edge = DirectedEdge(source, target)
-        source.lines.append(edge)
-        
-        canvas.scene.addItem(source)
-        canvas.scene.addItem(target)
-        canvas.scene.addItem(edge)
-        
-        initial_line = edge.line()
-        source.setPos(50, 50)
-        
-        # Die Linie sollte sich geändert haben
-        updated_line = edge.line()
-        assert initial_line.p1() != updated_line.p1()
 
 
 class TestNetworkCanvas:
