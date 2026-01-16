@@ -169,35 +169,12 @@ class MainWindow(QMainWindow):
         toolbar.addWidget(btn_save)
         toolbar.addWidget(btn_svg)
         
-        # Info-Label für Bedienung
-        info_layout = QHBoxLayout()
-        info_btn = QPushButton("ℹ️ Hilfe")
-        info_btn.clicked.connect(self.show_help)
-        info_layout.addStretch()
-        info_layout.addWidget(info_btn)
-        
         layout.addLayout(toolbar)
-        layout.addLayout(info_layout)
         layout.addWidget(self.canvas)
         
         container = QWidget()
         container.setLayout(layout)
         self.setCentralWidget(container)
-
-    def show_help(self):
-        """Zeigt Hilfedialog mit Bedienungshinweisen."""
-        help_text = """
-<h3>Bedienung:</h3>
-<ul>
-<li><b>Linksklick</b> auf leere Fläche: Neuen Knoten erstellen</li>
-<li><b>Linksklick</b> auf Knoten + Ziehen: Knoten verschieben</li>
-<li><b>Rechtsklick</b> auf Knoten: Erste Auswahl für Kante</li>
-<li><b>Rechtsklick</b> auf zweiten Knoten: Kante erstellen</li>
-<li><b>Doppelklick</b> auf Knoten: Label bearbeiten</li>
-<li><b>Mittelklick</b> auf Knoten: Label bearbeiten</li>
-</ul>
-        """
-        QMessageBox.information(self, "Hilfe - Vector Network Designer Pro", help_text)
 
     def is_connected(self):
         if not self.canvas.nodes: return True
