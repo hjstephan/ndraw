@@ -2,13 +2,14 @@ import sys
 import json
 import math
 from PyQt6.QtWidgets import (QApplication, QMainWindow, QGraphicsView, QGraphicsScene, 
-                             QGraphicsEllipseItem, QGraphicsLineItem, QVBoxLayout, 
-                             QWidget, QPushButton, QHBoxLayout, QMessageBox, QFileDialog)
+                             QGraphicsEllipseItem, QGraphicsLineItem, QGraphicsTextItem,
+                             QVBoxLayout, QWidget, QPushButton, QHBoxLayout, QMessageBox, 
+                             QFileDialog, QInputDialog)
 from PyQt6.QtCore import Qt, QPointF, QLineF, QRectF
-from PyQt6.QtGui import QPainter, QPen, QColor, QBrush, QPolygonF
+from PyQt6.QtGui import QPainter, QPen, QColor, QBrush, QPolygonF, QFont
 
 class Node(QGraphicsEllipseItem):
-    def __init__(self, x, y, node_id):
+    def __init__(self, x, y, node_id, label=None):
         super().__init__(-20, -20, 40, 40)
         self.setPos(x, y)
         self.setBrush(QBrush(QColor("#3498db")))
@@ -17,6 +18,25 @@ class Node(QGraphicsEllipseItem):
                       QGraphicsEllipseItem.GraphicsItemFlag.ItemSendsGeometryChanges)
         self.node_id = node_id
         self.lines = []
+        
+        # Label für den Knoten
+        self.label_text = label if label is not None else str(node_id)
+        self.label = QGraphicsTextItem(self.label_text, self)
+        self.label.setDefaultTextColor(Qt.GlobalColor.white)
+        font = QFont("Arial", 10, QFont.Weight.Bold)
+        self.label.setFont(font)
+        self.update_label_position()
+
+    def update_label_position(self):
+        """Zentriert das Label im Knoten."""
+        br = self.label.boundingRect()
+        self.label.setPos(-br.width()/2, -br.height()/2)
+    
+    def set_label(self, text):
+        """Setzt ein neues Label für den Knoten."""
+        self.label_text = text
+        self.label.setPlainText(text)
+        self.update_label_position()
 
     def itemChange(self, change, value):
         if change == QGraphicsEllipseItem.GraphicsItemChange.ItemPositionChange:
@@ -69,6 +89,10 @@ class NetworkCanvas(QGraphicsView):
 
     def mousePressEvent(self, event):
         item = self.itemAt(event.pos())
+        # Finde den eigentlichen Node, falls auf Label geklickt wurde
+        if isinstance(item, QGraphicsTextItem) and isinstance(item.parentItem(), Node):
+            item = item.parentItem()
+            
         if event.button() == Qt.MouseButton.LeftButton:
             if not item:
                 pos = self.mapToScene(event.pos())
@@ -85,9 +109,34 @@ class NetworkCanvas(QGraphicsView):
                         self.add_new_edge(self.connection_source, item)
                     self.connection_source.setBrush(QBrush(QColor("#3498db")))
                     self.connection_source = None
+        elif event.button() == Qt.MouseButton.MiddleButton:
+            # Mittlere Maustaste: Label bearbeiten
+            if isinstance(item, Node):
+                self.edit_node_label(item)
 
-    def add_new_node(self, x, y, node_id):
-        node = Node(x, y, node_id)
+    def mouseDoubleClickEvent(self, event):
+        """Doppelklick auf einen Knoten öffnet den Label-Editor."""
+        item = self.itemAt(event.pos())
+        if isinstance(item, QGraphicsTextItem) and isinstance(item.parentItem(), Node):
+            item = item.parentItem()
+        if isinstance(item, Node):
+            self.edit_node_label(item)
+        else:
+            super().mouseDoubleClickEvent(event)
+
+    def edit_node_label(self, node):
+        """Öffnet einen Dialog zum Bearbeiten des Knoten-Labels."""
+        text, ok = QInputDialog.getText(
+            None, 
+            "Knoten beschriften", 
+            f"Label für Knoten {node.node_id}:",
+            text=node.label_text
+        )
+        if ok and text:
+            node.set_label(text)
+
+    def add_new_node(self, x, y, node_id, label=None):
+        node = Node(x, y, node_id, label)
         self.scene.addItem(node)
         self.nodes.append(node)
         return node
@@ -119,12 +168,36 @@ class MainWindow(QMainWindow):
         toolbar.addWidget(btn_load)
         toolbar.addWidget(btn_save)
         toolbar.addWidget(btn_svg)
+        
+        # Info-Label für Bedienung
+        info_layout = QHBoxLayout()
+        info_btn = QPushButton("ℹ️ Hilfe")
+        info_btn.clicked.connect(self.show_help)
+        info_layout.addStretch()
+        info_layout.addWidget(info_btn)
+        
         layout.addLayout(toolbar)
+        layout.addLayout(info_layout)
         layout.addWidget(self.canvas)
         
         container = QWidget()
         container.setLayout(layout)
         self.setCentralWidget(container)
+
+    def show_help(self):
+        """Zeigt Hilfedialog mit Bedienungshinweisen."""
+        help_text = """
+<h3>Bedienung:</h3>
+<ul>
+<li><b>Linksklick</b> auf leere Fläche: Neuen Knoten erstellen</li>
+<li><b>Linksklick</b> auf Knoten + Ziehen: Knoten verschieben</li>
+<li><b>Rechtsklick</b> auf Knoten: Erste Auswahl für Kante</li>
+<li><b>Rechtsklick</b> auf zweiten Knoten: Kante erstellen</li>
+<li><b>Doppelklick</b> auf Knoten: Label bearbeiten</li>
+<li><b>Mittelklick</b> auf Knoten: Label bearbeiten</li>
+</ul>
+        """
+        QMessageBox.information(self, "Hilfe - Vector Network Designer Pro", help_text)
 
     def is_connected(self):
         if not self.canvas.nodes: return True
@@ -152,7 +225,8 @@ class MainWindow(QMainWindow):
             self.canvas.edges = []
             node_map = {}
             for n_data in data["nodes"]:
-                node = self.canvas.add_new_node(n_data["x"], n_data["y"], n_data["id"])
+                label = n_data.get("label", str(n_data["id"]))
+                node = self.canvas.add_new_node(n_data["x"], n_data["y"], n_data["id"], label)
                 node_map[n_data["id"]] = node
             for e_data in data["edges"]:
                 self.canvas.add_new_edge(node_map[e_data["from"]], node_map[e_data["to"]])
@@ -166,8 +240,10 @@ class MainWindow(QMainWindow):
         path, _ = QFileDialog.getSaveFileName(self, "JSON Speichern", "", "JSON Files (*.json)")
         if path:
             data = {
-                "nodes": [{"id": n.node_id, "x": n.pos().x(), "y": n.pos().y()} for n in self.canvas.nodes],
-                "edges": [{"from": e.source.node_id, "to": e.target.node_id} for e in self.canvas.edges]
+                "nodes": [{"id": n.node_id, "x": n.pos().x(), "y": n.pos().y(), "label": n.label_text} 
+                         for n in self.canvas.nodes],
+                "edges": [{"from": e.source.node_id, "to": e.target.node_id} 
+                         for e in self.canvas.edges]
             }
             with open(path, "w") as f:
                 json.dump(data, f, indent=4)
@@ -178,7 +254,6 @@ class MainWindow(QMainWindow):
             QMessageBox.warning(self, "Validierung", "Netzwerk ist nicht zusammenhängend.")
             return
 
-        # 1. Bounding Box berechnen (für minimalen Rahmen)
         xs = [n.pos().x() for n in self.canvas.nodes]
         ys = [n.pos().y() for n in self.canvas.nodes]
         padding = 30
@@ -191,18 +266,23 @@ class MainWindow(QMainWindow):
         if path:
             with open(path, "w") as f:
                 f.write('<?xml version="1.0" encoding="UTF-8" ?>\n')
-                # ViewBox setzt den Fokus genau auf den belegten Bereich
                 f.write(f'<svg xmlns="http://www.w3.org/2000/svg" width="{width}" height="{height}" viewBox="{min_x} {min_y} {width} {height}">\n')
                 f.write('<defs><marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="black" /></marker></defs>\n')
+                
+                # Kanten zeichnen
                 for e in self.canvas.edges:
                     line = QLineF(e.source.pos(), e.target.pos())
                     l = line.length()
                     if l > 40:
                         p1, p2 = line.pointAt(20/l), line.pointAt(1-20/l)
                         f.write(f'  <line x1="{p1.x()}" y1="{p1.y()}" x2="{p2.x()}" y2="{p2.y()}" stroke="black" stroke-width="2" marker-end="url(#arrow)" />\n')
+                
+                # Knoten zeichnen
                 for n in self.canvas.nodes:
                     f.write(f'  <circle cx="{n.pos().x()}" cy="{n.pos().y()}" r="20" fill="#3498db" stroke="#2c3e50" stroke-width="2" />\n')
-                    f.write(f'  <text x="{n.pos().x()}" y="{n.pos().y()}" font-family="Arial" font-size="12" text-anchor="middle" fill="white" dy=".3em">{n.node_id}</text>\n')
+                    # Label als Text
+                    f.write(f'  <text x="{n.pos().x()}" y="{n.pos().y()}" font-family="Arial" font-size="10" font-weight="bold" text-anchor="middle" fill="white" dy=".35em">{n.label_text}</text>\n')
+                
                 f.write('</svg>')
 
 if __name__ == "__main__":
