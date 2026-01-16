@@ -12,17 +12,19 @@ class Node(QGraphicsEllipseItem):
     def __init__(self, x, y, node_id, label=None):
         super().__init__(-20, -20, 40, 40)
         self.setPos(x, y)
-        self.setBrush(QBrush(QColor("#3498db")))
+        self.setBrush(QBrush(QColor("#ffffff")))  # Weißer Hintergrund
         self.setPen(QPen(QColor("#2c3e50"), 2))
         self.setFlags(QGraphicsEllipseItem.GraphicsItemFlag.ItemIsMovable | 
-                      QGraphicsEllipseItem.GraphicsItemFlag.ItemSendsGeometryChanges)
+                      QGraphicsEllipseItem.GraphicsItemFlag.ItemSendsGeometryChanges |
+                      QGraphicsEllipseItem.GraphicsItemFlag.ItemIsSelectable)
         self.node_id = node_id
         self.lines = []
+        self.is_editing = False
         
         # Label für den Knoten
         self.label_text = label if label is not None else str(node_id)
         self.label = QGraphicsTextItem(self.label_text, self)
-        self.label.setDefaultTextColor(Qt.GlobalColor.white)
+        self.label.setDefaultTextColor(QColor("#2c3e50"))  # Dunkler Text für weißen Hintergrund
         font = QFont("Arial", 10, QFont.Weight.Bold)
         self.label.setFont(font)
 
@@ -40,11 +42,34 @@ class Node(QGraphicsEllipseItem):
         self.label_text = text
         self.label.setPlainText(text)
         self.update_label_position()
+    
+    def set_editing_mode(self, editing):
+        """Setzt den Bearbeitungsmodus mit oranger Hervorhebung."""
+        self.is_editing = editing
+        if editing:
+            self.setBrush(QBrush(QColor("#ff9500")))  # Orange Hintergrund beim Bearbeiten
+            self.setPen(QPen(QColor("#ff6600"), 3))
+        else:
+            self.update_selection_style()
+    
+    def update_selection_style(self):
+        """Aktualisiert den Stil basierend auf Selektionsstatus."""
+        if self.is_editing:
+            return  # Bearbeitungsmodus hat Vorrang
+        
+        if self.isSelected():
+            self.setBrush(QBrush(QColor("#e3f2fd")))  # Hellblau wenn selektiert
+            self.setPen(QPen(QColor("#2196f3"), 3))
+        else:
+            self.setBrush(QBrush(QColor("#ffffff")))  # Weiß normal
+            self.setPen(QPen(QColor("#2c3e50"), 2))
 
     def itemChange(self, change, value):
         if change == QGraphicsEllipseItem.GraphicsItemChange.ItemPositionChange:
             for line in self.lines:
                 line.update_position()
+        elif change == QGraphicsEllipseItem.GraphicsItemChange.ItemSelectedChange:
+            self.update_selection_style()
         return super().itemChange(change, value)
 
 class DirectedEdge(QGraphicsLineItem):
@@ -53,6 +78,7 @@ class DirectedEdge(QGraphicsLineItem):
         self.source = source
         self.target = target
         self.setPen(QPen(Qt.GlobalColor.black, 2))
+        self.setFlags(QGraphicsLineItem.GraphicsItemFlag.ItemIsSelectable)
         self.arrow_size = 12
         self.node_radius = 20
         self.update_position()
@@ -67,6 +93,18 @@ class DirectedEdge(QGraphicsLineItem):
             self.setLine(QLineF(p1, p2))
         else:
             self.setLine(QLineF(self.source.pos(), self.source.pos()))
+    
+    def update_selection_style(self):
+        """Aktualisiert den Stil basierend auf Selektionsstatus."""
+        if self.isSelected():
+            self.setPen(QPen(QColor("#2196f3"), 4))  # Dick und blau wenn selektiert
+        else:
+            self.setPen(QPen(Qt.GlobalColor.black, 2))
+
+    def itemChange(self, change, value):
+        if change == QGraphicsLineItem.GraphicsItemChange.ItemSelectedChange:
+            self.update_selection_style()
+        return super().itemChange(change, value)
 
     def paint(self, painter, option, widget=None):
         line = self.line()
@@ -76,7 +114,12 @@ class DirectedEdge(QGraphicsLineItem):
         angle = math.atan2(-line.dy(), line.dx())
         arrow_p1 = line.p2() - QPointF(math.cos(angle + math.pi/8) * self.arrow_size, -math.sin(angle + math.pi/8) * self.arrow_size)
         arrow_p2 = line.p2() - QPointF(math.cos(angle - math.pi/8) * self.arrow_size, -math.sin(angle - math.pi/8) * self.arrow_size)
-        painter.setBrush(QBrush(Qt.GlobalColor.black))
+        
+        # Pfeilspitze in gleicher Farbe wie Linie
+        if self.isSelected():
+            painter.setBrush(QBrush(QColor("#2196f3")))
+        else:
+            painter.setBrush(QBrush(Qt.GlobalColor.black))
         painter.setPen(Qt.PenStyle.NoPen)
         painter.drawPolygon(QPolygonF([line.p2(), arrow_p1, arrow_p2]))
 
@@ -110,7 +153,7 @@ class NetworkCanvas(QGraphicsView):
                 else:
                     if item != self.connection_source:
                         self.add_new_edge(self.connection_source, item)
-                    self.connection_source.setBrush(QBrush(QColor("#3498db")))
+                    self.connection_source.update_selection_style()
                     self.connection_source = None
         elif event.button() == Qt.MouseButton.MiddleButton:
             # Mittlere Maustaste: Label bearbeiten
@@ -120,6 +163,8 @@ class NetworkCanvas(QGraphicsView):
     def edit_node_label(self, node):
         """Aktiviert den Text-Cursor direkt im Knoten-Label."""
         label = node.label
+        node.set_editing_mode(True)
+        
         # Aktiviere die Texteingabe
         label.setTextInteractionFlags(Qt.TextInteractionFlag.TextEditorInteraction)
         label.setFocus()
@@ -141,6 +186,7 @@ class NetworkCanvas(QGraphicsView):
         node.label.setTextInteractionFlags(Qt.TextInteractionFlag.NoTextInteraction)
         node.label_text = node.label.toPlainText()
         node.update_label_position()
+        node.set_editing_mode(False)
     
     def keyPressEvent(self, event):
         if event.key() == Qt.Key.Key_F2:
@@ -153,8 +199,49 @@ class NetworkCanvas(QGraphicsView):
             
             if isinstance(item, Node):
                 self.edit_node_label(item)
+        elif event.key() == Qt.Key.Key_Delete:
+            self.delete_selected_items()
         else:
             super().keyPressEvent(event)
+    
+    def delete_selected_items(self):
+        """Löscht alle selektierten Items (Knoten und Kanten)."""
+        selected_items = self.scene.selectedItems()
+        
+        # Erst Kanten löschen
+        for item in selected_items:
+            if isinstance(item, DirectedEdge):
+                self.remove_edge(item)
+        
+        # Dann Knoten löschen
+        for item in selected_items:
+            if isinstance(item, Node):
+                self.remove_node(item)
+    
+    def remove_node(self, node):
+        """Entfernt einen Knoten und alle verbundenen Kanten."""
+        # Entferne alle Kanten, die mit diesem Knoten verbunden sind
+        edges_to_remove = [edge for edge in self.edges if edge.source == node or edge.target == node]
+        for edge in edges_to_remove:
+            self.remove_edge(edge)
+        
+        # Entferne den Knoten
+        self.scene.removeItem(node)
+        if node in self.nodes:
+            self.nodes.remove(node)
+    
+    def remove_edge(self, edge):
+        """Entfernt eine Kante."""
+        # Entferne Referenzen in den Knoten
+        if edge in edge.source.lines:
+            edge.source.lines.remove(edge)
+        if edge in edge.target.lines:
+            edge.target.lines.remove(edge)
+        
+        # Entferne die Kante aus der Scene und Liste
+        self.scene.removeItem(edge)
+        if edge in self.edges:
+            self.edges.remove(edge)
 
     def add_new_node(self, x, y, node_id, label=None):
         node = Node(x, y, node_id, label)
@@ -168,6 +255,7 @@ class NetworkCanvas(QGraphicsView):
         self.edges.append(edge)
         source.lines.append(edge)
         target.lines.append(edge)
+        return edge
 
 class MainWindow(QMainWindow):
     def __init__(self):
@@ -277,9 +365,9 @@ class MainWindow(QMainWindow):
                 
                 # Knoten zeichnen
                 for n in self.canvas.nodes:
-                    f.write(f'  <circle cx="{n.pos().x()}" cy="{n.pos().y()}" r="20" fill="#3498db" stroke="#2c3e50" stroke-width="2" />\n')
+                    f.write(f'  <circle cx="{n.pos().x()}" cy="{n.pos().y()}" r="20" fill="#ffffff" stroke="#2c3e50" stroke-width="2" />\n')
                     # Label als Text
-                    f.write(f'  <text x="{n.pos().x()}" y="{n.pos().y()}" font-family="Arial" font-size="10" font-weight="bold" text-anchor="middle" fill="white" dy=".35em">{n.label_text}</text>\n')
+                    f.write(f'  <text x="{n.pos().x()}" y="{n.pos().y()}" font-family="Arial" font-size="10" font-weight="bold" text-anchor="middle" fill="#2c3e50" dy=".35em">{n.label_text}</text>\n')
                 
                 f.write('</svg>')
 

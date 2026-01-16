@@ -75,9 +75,9 @@ pytest --cov=src --cov-report=html
 
 ## Milestones & Roadmap
 ```bash
-[ ] Knoten entfernen: Implementierung einer Löschfunktion (z.B. via Del-Taste).  
-[ ] Kanten entfernen: Auswahl und Entfernen einzelner Verbindungen.  
-[x] Inline-Editing: Umbenennen via F2 (Abgeschlossen).  
-[ ] Testüberdeckung erhöhen: Ziel ist eine Coverage von > 80% (aktuell ~53%).  
+[x] Knoten entfernen: Implementierung einer Löschfunktion (via Del-Taste).  
+[x] Kanten entfernen: Auswahl und Entfernen einzelner Verbindungen.  
+[x] Inline-Editing: Umbenennen via F2.  
+[-] Testüberdeckung erhöhen: Ziel ist eine Coverage von > 80% (aktuell ~65%).  
 [ ] Layout-Algorithmen: Implementierung von Force-Directed-Layouts zur automatischen Anordnung.  
 ```
