@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<svg xmlns="http://www.w3.org/2000/svg" width="369.0" height="194.0" viewBox="-274.0 -179.0 369.0 194.0">
+<defs><marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="black" /></marker></defs>
+  <line x1="-225.9503792443264" y1="-73.61459172429876" x2="-86.0496207556736" y2="-140.38540827570125" stroke="black" stroke-width="2" marker-end="url(#arrow)" />
+  <line x1="-68.29847421946995" y1="-129.00222729551334" x2="-69.70152578053005" y2="-34.997772704486664" stroke="black" stroke-width="2" marker-end="url(#arrow)" />
+  <line x1="-89.99873765266388" y1="-15.224704917445662" x2="-139.00126234733614" y2="-15.775295082554338" stroke="black" stroke-width="2" marker-end="url(#arrow)" />
+  <line x1="-52.359704547793065" y1="-136.53480212079748" x2="49.35970454779306" y2="-55.46519787920252" stroke="black" stroke-width="2" marker-end="url(#arrow)" />
+  <circle cx="-244.0" cy="-65.0" r="20" fill="#3498db" stroke="#2c3e50" stroke-width="2" />
+  <text x="-244.0" y="-65.0" font-family="Arial" font-size="12" text-anchor="middle" fill="white" dy=".3em">0</text>
+  <circle cx="-68.0" cy="-149.0" r="20" fill="#3498db" stroke="#2c3e50" stroke-width="2" />
+  <text x="-68.0" y="-149.0" font-family="Arial" font-size="12" text-anchor="middle" fill="white" dy=".3em">1</text>
+  <circle cx="-70.0" cy="-15.0" r="20" fill="#3498db" stroke="#2c3e50" stroke-width="2" />
+  <text x="-70.0" y="-15.0" font-family="Arial" font-size="12" text-anchor="middle" fill="white" dy=".3em">2</text>
+  <circle cx="-159.0" cy="-16.0" r="20" fill="#3498db" stroke="#2c3e50" stroke-width="2" />
+  <text x="-159.0" y="-16.0" font-family="Arial" font-size="12" text-anchor="middle" fill="white" dy=".3em">3</text>
+  <circle cx="65.0" cy="-43.0" r="20" fill="#3498db" stroke="#2c3e50" stroke-width="2" />
+  <text x="65.0" y="-43.0" font-family="Arial" font-size="12" text-anchor="middle" fill="white" dy=".3em">4</text>
+</svg>
