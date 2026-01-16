@@ -342,9 +342,10 @@ class MainWindow(QMainWindow):
 
         xs = [n.pos().x() for n in self.canvas.nodes]
         ys = [n.pos().y() for n in self.canvas.nodes]
-        padding = 30
-        min_x, max_x = min(xs) - padding, max(xs) + padding
-        min_y, max_y = min(ys) - padding, max(ys) + padding
+        padding_x = 25
+        padding_y = 22
+        min_x, max_x = min(xs) - padding_x, max(xs) + padding_x
+        min_y, max_y = min(ys) - padding_y, max(ys) + padding_y
         width = max_x - min_x
         height = max_y - min_y
 

@@ -1,4 +1,4 @@
-# Vector Network Designer ProVector
+# Vector Network Designer Pro
 Network Designer Pro ist eine leistungsstarke Desktop-Anwendung auf Basis von Python 3.12 und PyQt6, die speziell für das Entwerfen, Visualisieren und Exportieren von Netzwerk-Topologien entwickelt wurde. Die Anwendung kombiniert eine intuitive grafische Benutzeroberfläche mit präzisem Vektor-Export.
 
 ## Features
@@ -43,10 +43,10 @@ pip install PyQt6 pytest pytest-qt pytest-cov
 Aktion                  Steuerung
 ---------------------------------------------------------------------------------
 Knoten erstellen        Linksklick auf freien Bereich
-Knoten verbinden        Rechtsklick auf Startknoten -> Rechtsklick auf Zielknoten
+Knoten verbinden        Rechtsklick auf Startknoten und Rechtsklick auf Zielknoten
 Knoten verschieben      Linksklick halten und ziehen
-Knoten umbenennen       Maus über Knoten bewegen + F2 drücken
-Bearbeitung beenden     Enter drücken oder außerhalb des Labels klicken
+Knoten umbenennen       Knoten selektieren und F2 drücken
+Kante löschen           Kante selektieren und Del drücken
 ```
 
 ## Testing
@@ -64,13 +64,17 @@ pytest --cov=src --cov-report=html
 
 ## Projektstruktur
 ```
+├── doc/               # Dokumentation (Code Coverage Report, ...)
 ├── src/
 │   └── ndraw.py       # Hauptanwendung (GUI & Logik)
 ├── tests/
 │   └── test_ndraw.py  # Testsuite (Pytest & QtTest)
+├── drw/               # Gezeichnete Netzwerke
+│   ├── netw.json      
+|   └── netw.svg
 ├── pyproject.toml     # Projektkonfiguration
 ├── pytest.ini         # Test-Konfiguration
-└── README.md          # Dokumentation
+└── README.md
 ```
 
 ## Milestones & Roadmap
