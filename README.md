@@ -65,7 +65,7 @@ pip install PyQt6 pytest pytest-qt pytest-cov
 
 ### 4. Icon generieren (optional)
 ```bash
-python3 generate_icon.py
+python3 gen_icon.py
 ```
 
 ## Bedienung
@@ -93,7 +93,7 @@ cp ndraw_icon.png ~/.local/share/icons/
 # Desktop-Eintrag erstellen
 cat > ~/.local/share/applications/ndraw.desktop << 'EOF'
 [Desktop Entry]
-Name=Network Designer Pro
+Name=Vector Network Designer Pro
 Comment=Vector Network Design Tool
 Exec=/pfad/zu/ndraw/venv/bin/python /pfad/zu/ndraw/src/ndraw.py
 Icon=ndraw_icon

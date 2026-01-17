@@ -1,6 +1,7 @@
 import sys
 import json
 import math
+from pathlib import Path
 from PyQt6.QtWidgets import (QApplication, QMainWindow, QGraphicsView, QGraphicsScene, 
                              QGraphicsEllipseItem, QGraphicsLineItem, QGraphicsTextItem,
                              QVBoxLayout, QWidget, QPushButton, QHBoxLayout, QMessageBox, 
@@ -300,9 +301,6 @@ class MainWindow(QMainWindow):
         self.setWindowTitle("Vector Network Designer Pro")
         self.resize(1000, 800)
         
-        # Setze App-Icon
-        self.set_app_icon()
-        
         self.canvas = NetworkCanvas()
         
         layout = QVBoxLayout()
@@ -452,6 +450,25 @@ class MainWindow(QMainWindow):
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
+    
+    # Lade App-Icon aus verschiedenen möglichen Pfaden
+    icon_paths = [
+        Path.home() / ".local/share/icons/ndraw_icon.png",  # User-Installation
+        Path(__file__).parent / "ndraw_icon.png",            # Neben dem Script
+        Path(__file__).parent.parent / "ndraw_icon.png",     # Im Projekt-Root
+        Path("ndraw_icon.png"),                              # Aktuelles Verzeichnis
+    ]
+    
+    icon_loaded = False
+    for icon_path in icon_paths:
+        if icon_path.exists():
+            app.setWindowIcon(QIcon(str(icon_path)))
+            icon_loaded = True
+            break
+    
+    if not icon_loaded:
+        print("Hinweis: Icon nicht gefunden. Bitte führe 'python3 generate_icon.py' aus.")
+    
     window = MainWindow()
     window.show()
     sys.exit(app.exec())
