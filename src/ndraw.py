@@ -6,7 +6,7 @@ from PyQt6.QtWidgets import (QApplication, QMainWindow, QGraphicsView, QGraphics
                              QVBoxLayout, QWidget, QPushButton, QHBoxLayout, QMessageBox, 
                              QFileDialog, QInputDialog)
 from PyQt6.QtCore import Qt, QPointF, QLineF, QRectF
-from PyQt6.QtGui import QPainter, QPen, QColor, QBrush, QPolygonF, QFont
+from PyQt6.QtGui import QPainter, QPen, QColor, QBrush, QPolygonF, QFont, QIcon, QPixmap
 
 class Node(QGraphicsEllipseItem):
     def __init__(self, x, y, node_id, label=None):
@@ -132,6 +132,12 @@ class NetworkCanvas(QGraphicsView):
         self.nodes = []
         self.edges = []
         self.connection_source = None
+        
+        # Zoom-Einstellungen
+        self.zoom_factor = 1.0
+        self.zoom_step = 1.15
+        self.min_zoom = 0.1
+        self.max_zoom = 10.0
 
     def mousePressEvent(self, event):
         item = self.itemAt(event.pos())
@@ -204,6 +210,37 @@ class NetworkCanvas(QGraphicsView):
         else:
             super().keyPressEvent(event)
     
+    def wheelEvent(self, event):
+        """Zoom mit Mausrad."""
+        # Hole den Zoom-Faktor basierend auf der Scroll-Richtung
+        if event.angleDelta().y() > 0:
+            # Hineinzoomen
+            zoom_change = self.zoom_step
+        else:
+            # Herauszoomen
+            zoom_change = 1 / self.zoom_step
+        
+        # Berechne neuen Zoom-Faktor
+        new_zoom = self.zoom_factor * zoom_change
+        
+        # Begrenze Zoom auf Min/Max
+        if new_zoom < self.min_zoom or new_zoom > self.max_zoom:
+            return
+        
+        # Speichere alte Position unter Mauszeiger
+        old_pos = self.mapToScene(event.position().toPoint())
+        
+        # Führe Zoom aus
+        self.scale(zoom_change, zoom_change)
+        self.zoom_factor = new_zoom
+        
+        # Neue Position unter Mauszeiger
+        new_pos = self.mapToScene(event.position().toPoint())
+        
+        # Verschiebe Scene so dass die Position unter dem Mauszeiger gleich bleibt
+        delta = new_pos - old_pos
+        self.translate(delta.x(), delta.y())
+    
     def delete_selected_items(self):
         """Löscht alle selektierten Items (Knoten und Kanten)."""
         selected_items = self.scene.selectedItems()
@@ -262,6 +299,10 @@ class MainWindow(QMainWindow):
         super().__init__()
         self.setWindowTitle("Vector Network Designer Pro")
         self.resize(1000, 800)
+        
+        # Setze App-Icon
+        self.set_app_icon()
+        
         self.canvas = NetworkCanvas()
         
         layout = QVBoxLayout()
@@ -284,6 +325,44 @@ class MainWindow(QMainWindow):
         container = QWidget()
         container.setLayout(layout)
         self.setCentralWidget(container)
+    
+    def set_app_icon(self):
+        """Erstellt und setzt das App-Icon."""
+        # Erstelle ein 64x64 Pixmap für das Icon
+        pixmap = QPixmap(64, 64)
+        pixmap.fill(Qt.GlobalColor.transparent)
+        
+        painter = QPainter(pixmap)
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+        
+        # Hintergrund - abgerundetes Rechteck
+        painter.setBrush(QBrush(QColor("#2c3e50")))
+        painter.setPen(Qt.PenStyle.NoPen)
+        painter.drawRoundedRect(2, 2, 60, 60, 8, 8)
+        
+        # Zeichne 3 Knoten
+        node_positions = [(20, 20), (44, 20), (32, 40)]
+        painter.setBrush(QBrush(QColor("#ffffff")))
+        painter.setPen(QPen(QColor("#3498db"), 2))
+        for x, y in node_positions:
+            painter.drawEllipse(x-6, y-6, 12, 12)
+        
+        # Zeichne Verbindungen zwischen Knoten
+        painter.setPen(QPen(QColor("#3498db"), 2))
+        painter.drawLine(20, 20, 44, 20)  # Horizontal
+        painter.drawLine(20, 20, 32, 40)  # Diagonal links
+        painter.drawLine(44, 20, 32, 40)  # Diagonal rechts
+        
+        painter.end()
+        
+        icon = QIcon(pixmap)
+        self.setWindowIcon(icon)
+        
+        # Speichere Icon auch als Datei
+        try:
+            pixmap.save("ndraw_icon.png")
+        except:
+            pass  # Ignoriere Fehler beim Speichern
 
     def is_connected(self):
         if not self.canvas.nodes: return True
@@ -342,10 +421,9 @@ class MainWindow(QMainWindow):
 
         xs = [n.pos().x() for n in self.canvas.nodes]
         ys = [n.pos().y() for n in self.canvas.nodes]
-        padding_x = 25
-        padding_y = 22
-        min_x, max_x = min(xs) - padding_x, max(xs) + padding_x
-        min_y, max_y = min(ys) - padding_y, max(ys) + padding_y
+        padding = 30
+        min_x, max_x = min(xs) - padding, max(xs) + padding
+        min_y, max_y = min(ys) - padding, max(ys) + padding
         width = max_x - min_x
         height = max_y - min_y
 
