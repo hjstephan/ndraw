@@ -13,7 +13,7 @@ class Node(QGraphicsEllipseItem):
     def __init__(self, x, y, node_id, label=None):
         super().__init__(-20, -20, 40, 40)
         self.setPos(x, y)
-        self.setBrush(QBrush(QColor("#ffffff")))  # Weißer Hintergrund
+        self.setBrush(QBrush(QColor("#ffffff")))
         self.setPen(QPen(QColor("#2c3e50"), 2))
         self.setFlags(QGraphicsEllipseItem.GraphicsItemFlag.ItemIsMovable | 
                       QGraphicsEllipseItem.GraphicsItemFlag.ItemSendsGeometryChanges |
@@ -22,47 +22,41 @@ class Node(QGraphicsEllipseItem):
         self.lines = []
         self.is_editing = False
         
-        # Label für den Knoten
         self.label_text = label if label is not None else str(node_id)
         self.label = QGraphicsTextItem(self.label_text, self)
-        self.label.setDefaultTextColor(QColor("#2c3e50"))  # Dunkler Text für weißen Hintergrund
+        self.label.setDefaultTextColor(QColor("#2c3e50"))
         font = QFont("Arial", 10, QFont.Weight.Bold)
         self.label.setFont(font)
-
         self.label.setTextInteractionFlags(Qt.TextInteractionFlag.NoTextInteraction) 
         self.label.setTabChangesFocus(True) 
         self.update_label_position()
 
     def update_label_position(self):
-        """Zentriert das Label im Knoten."""
         br = self.label.boundingRect()
         self.label.setPos(-br.width()/2, -br.height()/2)
     
     def set_label(self, text):
-        """Setzt ein neues Label für den Knoten."""
         self.label_text = text
         self.label.setPlainText(text)
         self.update_label_position()
     
     def set_editing_mode(self, editing):
-        """Setzt den Bearbeitungsmodus mit oranger Hervorhebung."""
         self.is_editing = editing
         if editing:
-            self.setBrush(QBrush(QColor("#ff9500")))  # Orange Hintergrund beim Bearbeiten
+            self.setBrush(QBrush(QColor("#ff9500")))
             self.setPen(QPen(QColor("#ff6600"), 3))
         else:
             self.update_selection_style()
     
     def update_selection_style(self):
-        """Aktualisiert den Stil basierend auf Selektionsstatus."""
         if self.is_editing:
-            return  # Bearbeitungsmodus hat Vorrang
+            return
         
         if self.isSelected():
-            self.setBrush(QBrush(QColor("#e3f2fd")))  # Hellblau wenn selektiert
+            self.setBrush(QBrush(QColor("#e3f2fd")))
             self.setPen(QPen(QColor("#2196f3"), 3))
         else:
-            self.setBrush(QBrush(QColor("#ffffff")))  # Weiß normal
+            self.setBrush(QBrush(QColor("#ffffff")))
             self.setPen(QPen(QColor("#2c3e50"), 2))
 
     def itemChange(self, change, value):
@@ -96,9 +90,8 @@ class DirectedEdge(QGraphicsLineItem):
             self.setLine(QLineF(self.source.pos(), self.source.pos()))
     
     def update_selection_style(self):
-        """Aktualisiert den Stil basierend auf Selektionsstatus."""
         if self.isSelected():
-            self.setPen(QPen(QColor("#2196f3"), 4))  # Dick und blau wenn selektiert
+            self.setPen(QPen(QColor("#2196f3"), 4))
         else:
             self.setPen(QPen(Qt.GlobalColor.black, 2))
 
@@ -116,7 +109,6 @@ class DirectedEdge(QGraphicsLineItem):
         arrow_p1 = line.p2() - QPointF(math.cos(angle + math.pi/8) * self.arrow_size, -math.sin(angle + math.pi/8) * self.arrow_size)
         arrow_p2 = line.p2() - QPointF(math.cos(angle - math.pi/8) * self.arrow_size, -math.sin(angle - math.pi/8) * self.arrow_size)
         
-        # Pfeilspitze in gleicher Farbe wie Linie
         if self.isSelected():
             painter.setBrush(QBrush(QColor("#2196f3")))
         else:
@@ -134,7 +126,6 @@ class NetworkCanvas(QGraphicsView):
         self.edges = []
         self.connection_source = None
         
-        # Zoom-Einstellungen
         self.zoom_factor = 1.0
         self.zoom_step = 1.15
         self.min_zoom = 0.1
@@ -142,7 +133,6 @@ class NetworkCanvas(QGraphicsView):
 
     def mousePressEvent(self, event):
         item = self.itemAt(event.pos())
-        # Finde den eigentlichen Node, falls auf Label geklickt wurde
         if isinstance(item, QGraphicsTextItem) and isinstance(item.parentItem(), Node):
             item = item.parentItem()
             
@@ -162,34 +152,30 @@ class NetworkCanvas(QGraphicsView):
                         self.add_new_edge(self.connection_source, item)
                     self.connection_source.update_selection_style()
                     self.connection_source = None
+            else:
+                # BUGFIX: Rechtsklick außerhalb eines Knotens bricht Verbindung ab
+                if self.connection_source:
+                    self.connection_source.update_selection_style()
+                    self.connection_source = None
         elif event.button() == Qt.MouseButton.MiddleButton:
-            # Mittlere Maustaste: Label bearbeiten
             if isinstance(item, Node):
                 self.edit_node_label(item)
 
     def edit_node_label(self, node):
-        """Aktiviert den Text-Cursor direkt im Knoten-Label."""
         label = node.label
         node.set_editing_mode(True)
         
-        # Aktiviere die Texteingabe
         label.setTextInteractionFlags(Qt.TextInteractionFlag.TextEditorInteraction)
         label.setFocus()
         
-        # Cursor ans Ende setzen
         cursor = label.textCursor()
         cursor.movePosition(cursor.MoveOperation.End)
         label.setTextCursor(cursor)
-
-        # Wichtig: Wenn das Label den Fokus verliert, speichern wir den Text
         label.focusOutEvent = lambda event: self.finish_label_edit(node, event)
     
     def finish_label_edit(self, node, event):
-        """Fixiert den Text und zentriert das Label neu."""
-        # Standard-Verhalten für FocusOut aufrufen
         QGraphicsTextItem.focusOutEvent(node.label, event)
         
-        # Bearbeitung sperren und neu zentrieren
         node.label.setTextInteractionFlags(Qt.TextInteractionFlag.NoTextInteraction)
         node.label_text = node.label.toPlainText()
         node.update_label_position()
@@ -197,7 +183,6 @@ class NetworkCanvas(QGraphicsView):
     
     def keyPressEvent(self, event):
         if event.key() == Qt.Key.Key_F2:
-            # Sucht das Item direkt unter dem Mauszeiger
             pos = self.mapFromGlobal(self.cursor().pos())
             item = self.itemAt(pos)
             
@@ -208,56 +193,49 @@ class NetworkCanvas(QGraphicsView):
                 self.edit_node_label(item)
         elif event.key() == Qt.Key.Key_Delete:
             self.delete_selected_items()
+        elif event.key() == Qt.Key.Key_Escape:
+            # BUGFIX: ESC bricht Verbindungsvorgang ab
+            if self.connection_source:
+                self.connection_source.update_selection_style()
+                self.connection_source = None
         else:
             super().keyPressEvent(event)
     
     def wheelEvent(self, event):
-        """Zoom mit Mausrad."""
-        # Hole den Zoom-Faktor basierend auf der Scroll-Richtung
         if event.angleDelta().y() > 0:
-            # Hineinzoomen
             zoom_change = self.zoom_step
         else:
-            # Herauszoomen
             zoom_change = 1 / self.zoom_step
         
-        # Berechne neuen Zoom-Faktor
         new_zoom = self.zoom_factor * zoom_change
         
-        # Begrenze Zoom auf Min/Max
         if new_zoom < self.min_zoom or new_zoom > self.max_zoom:
             return
         
-        # Speichere alte Position unter Mauszeiger
         old_pos = self.mapToScene(event.position().toPoint())
-        
-        # Führe Zoom aus
         self.scale(zoom_change, zoom_change)
         self.zoom_factor = new_zoom
-        
-        # Neue Position unter Mauszeiger
         new_pos = self.mapToScene(event.position().toPoint())
-        
-        # Verschiebe Scene so dass die Position unter dem Mauszeiger gleich bleibt
         delta = new_pos - old_pos
         self.translate(delta.x(), delta.y())
     
     def delete_selected_items(self):
-        """Löscht alle selektierten Items (Knoten und Kanten)."""
         selected_items = self.scene.selectedItems()
         
-        # Erst Kanten löschen
         for item in selected_items:
             if isinstance(item, DirectedEdge):
                 self.remove_edge(item)
         
-        # Dann Knoten löschen
         for item in selected_items:
             if isinstance(item, Node):
                 self.remove_node(item)
     
     def remove_node(self, node):
-        """Entfernt einen Knoten und alle verbundenen Kanten."""
+        """BUGFIX: Prüfe ob Knoten als connection_source verwendet wird"""
+        # Brich Verbindungsvorgang ab, falls dieser Knoten beteiligt ist
+        if self.connection_source == node:
+            self.connection_source = None
+        
         # Entferne alle Kanten, die mit diesem Knoten verbunden sind
         edges_to_remove = [edge for edge in self.edges if edge.source == node or edge.target == node]
         for edge in edges_to_remove:
@@ -269,14 +247,11 @@ class NetworkCanvas(QGraphicsView):
             self.nodes.remove(node)
     
     def remove_edge(self, edge):
-        """Entfernt eine Kante."""
-        # Entferne Referenzen in den Knoten
         if edge in edge.source.lines:
             edge.source.lines.remove(edge)
         if edge in edge.target.lines:
             edge.target.lines.remove(edge)
         
-        # Entferne die Kante aus der Scene und Liste
         self.scene.removeItem(edge)
         if edge in self.edges:
             self.edges.remove(edge)
@@ -288,6 +263,10 @@ class NetworkCanvas(QGraphicsView):
         return node
 
     def add_new_edge(self, source, target):
+        """BUGFIX: Validiere dass beide Knoten noch existieren"""
+        if source not in self.nodes or target not in self.nodes:
+            return None
+            
         edge = DirectedEdge(source, target)
         self.scene.addItem(edge)
         self.edges.append(edge)
@@ -325,42 +304,36 @@ class MainWindow(QMainWindow):
         self.setCentralWidget(container)
     
     def set_app_icon(self):
-        """Erstellt und setzt das App-Icon."""
-        # Erstelle ein 64x64 Pixmap für das Icon
         pixmap = QPixmap(64, 64)
         pixmap.fill(Qt.GlobalColor.transparent)
         
         painter = QPainter(pixmap)
         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
         
-        # Hintergrund - abgerundetes Rechteck
         painter.setBrush(QBrush(QColor("#2c3e50")))
         painter.setPen(Qt.PenStyle.NoPen)
         painter.drawRoundedRect(2, 2, 60, 60, 8, 8)
         
-        # Zeichne 3 Knoten
         node_positions = [(20, 20), (44, 20), (32, 40)]
         painter.setBrush(QBrush(QColor("#ffffff")))
         painter.setPen(QPen(QColor("#3498db"), 2))
         for x, y in node_positions:
             painter.drawEllipse(x-6, y-6, 12, 12)
         
-        # Zeichne Verbindungen zwischen Knoten
         painter.setPen(QPen(QColor("#3498db"), 2))
-        painter.drawLine(20, 20, 44, 20)  # Horizontal
-        painter.drawLine(20, 20, 32, 40)  # Diagonal links
-        painter.drawLine(44, 20, 32, 40)  # Diagonal rechts
+        painter.drawLine(20, 20, 44, 20)
+        painter.drawLine(20, 20, 32, 40)
+        painter.drawLine(44, 20, 32, 40)
         
         painter.end()
         
         icon = QIcon(pixmap)
         self.setWindowIcon(icon)
         
-        # Speichere Icon auch als Datei
         try:
             pixmap.save("ndraw_icon.png")
         except:
-            pass  # Ignoriere Fehler beim Speichern
+            pass
 
     def is_connected(self):
         if not self.canvas.nodes: return True
@@ -386,6 +359,9 @@ class MainWindow(QMainWindow):
             self.canvas.scene.clear()
             self.canvas.nodes = []
             self.canvas.edges = []
+            # BUGFIX: Reset connection_source beim Laden
+            self.canvas.connection_source = None
+            
             node_map = {}
             for n_data in data["nodes"]:
                 label = n_data.get("label", str(n_data["id"]))
@@ -432,7 +408,6 @@ class MainWindow(QMainWindow):
                 f.write(f'<svg xmlns="http://www.w3.org/2000/svg" width="{width}" height="{height}" viewBox="{min_x} {min_y} {width} {height}">\n')
                 f.write('<defs><marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="black" /></marker></defs>\n')
                 
-                # Kanten zeichnen
                 for e in self.canvas.edges:
                     line = QLineF(e.source.pos(), e.target.pos())
                     l = line.length()
@@ -440,10 +415,8 @@ class MainWindow(QMainWindow):
                         p1, p2 = line.pointAt(20/l), line.pointAt(1-20/l)
                         f.write(f'  <line x1="{p1.x()}" y1="{p1.y()}" x2="{p2.x()}" y2="{p2.y()}" stroke="black" stroke-width="2" marker-end="url(#arrow)" />\n')
                 
-                # Knoten zeichnen
                 for n in self.canvas.nodes:
                     f.write(f'  <circle cx="{n.pos().x()}" cy="{n.pos().y()}" r="20" fill="#ffffff" stroke="#2c3e50" stroke-width="2" />\n')
-                    # Label als Text
                     f.write(f'  <text x="{n.pos().x()}" y="{n.pos().y()}" font-family="Arial" font-size="10" font-weight="bold" text-anchor="middle" fill="#2c3e50" dy=".35em">{n.label_text}</text>\n')
                 
                 f.write('</svg>')
@@ -451,12 +424,11 @@ class MainWindow(QMainWindow):
 if __name__ == "__main__":
     app = QApplication(sys.argv)
     
-    # Lade App-Icon aus verschiedenen möglichen Pfaden
     icon_paths = [
-        Path.home() / ".local/share/icons/ndraw_icon.png",  # User-Installation
-        Path(__file__).parent / "ndraw_icon.png",            # Neben dem Script
-        Path(__file__).parent.parent / "ndraw_icon.png",     # Im Projekt-Root
-        Path("ndraw_icon.png"),                              # Aktuelles Verzeichnis
+        Path.home() / ".local/share/icons/ndraw_icon.png",
+        Path(__file__).parent / "ndraw_icon.png",
+        Path(__file__).parent.parent / "ndraw_icon.png",
+        Path("ndraw_icon.png"),
     ]
     
     icon_loaded = False
