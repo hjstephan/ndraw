@@ -146,7 +146,7 @@ Der HTML-Report wird in `doc/coverage/` erstellt.
 - [x] Inline-Editing: Umbenennen via F2
 - [x] Sichtbare Selektion: Hervorhebung von Knoten und Kanten
 - [x] Zoom-Funktion: Mausrad-Zoom mit intelligentem Fokus
-- [x] Testüberdeckung erhöhen: Coverage von >80% erreicht
+- [x] Testüberdeckung erhöhen: Coverage von >60% erreicht
 - [ ] Undo/Redo: History-Funktionalität für alle Operationen
 - [ ] Layout-Algorithmen: Implementierung von Force-Directed-Layouts zur automatischen Anordnung
 - [ ] Themes: Dark Mode & weitere Farbschemata
