@@ -5,7 +5,7 @@ from pathlib import Path
 from PyQt6.QtWidgets import (QApplication, QMainWindow, QGraphicsView, QGraphicsScene, 
                              QGraphicsEllipseItem, QGraphicsLineItem, QGraphicsTextItem,
                              QVBoxLayout, QWidget, QPushButton, QHBoxLayout, QMessageBox, 
-                             QFileDialog, QInputDialog)
+                             QFileDialog, QInputDialog, QStatusBar)  # QStatusBar hinzufügen
 from PyQt6.QtCore import Qt, QPointF, QLineF, QRectF
 from PyQt6.QtGui import QPainter, QPen, QColor, QBrush, QPolygonF, QFont, QIcon, QPixmap
 
@@ -282,6 +282,22 @@ class MainWindow(QMainWindow):
         
         self.canvas = NetworkCanvas()
         
+        # Statusleiste erstellen
+        self.status_bar = QStatusBar()
+        self.status_bar.setStyleSheet("""
+            QStatusBar {
+                background-color: palette(window);
+                color: palette(text);
+                border-top: 1px solid palette(mid);
+                padding: 4px;
+            }
+            QStatusBar::item {
+                border: none;
+            }
+        """)
+        self.setStatusBar(self.status_bar)
+        self.show_status("Bereit", success=True)
+        
         layout = QVBoxLayout()
         toolbar = QHBoxLayout()
         
@@ -334,6 +350,30 @@ class MainWindow(QMainWindow):
             pixmap.save("ndraw_icon.png")
         except:
             pass
+    
+    def show_status(self, message, success=True, duration=5000):
+        """Zeigt eine Statusmeldung an."""
+        if success:
+            self.status_bar.setStyleSheet("""
+                QStatusBar {
+                    background-color: palette(window);
+                    color: #2e7d32;
+                    border-top: 1px solid palette(mid);
+                    padding: 4px;
+                    font-weight: bold;
+                }
+            """)
+        else:
+            self.status_bar.setStyleSheet("""
+                QStatusBar {
+                    background-color: palette(window);
+                    color: #c62828;
+                    border-top: 1px solid palette(mid);
+                    padding: 4px;
+                    font-weight: bold;
+                }
+            """)
+        self.status_bar.showMessage(message, duration)
 
     def is_connected(self):
         if not self.canvas.nodes: return True
@@ -369,12 +409,13 @@ class MainWindow(QMainWindow):
                 node_map[n_data["id"]] = node
             for e_data in data["edges"]:
                 self.canvas.add_new_edge(node_map[e_data["from"]], node_map[e_data["to"]])
+            self.show_status(f"✓ Geladen: {Path(path).name}", success=True)
         except Exception as e:
-            QMessageBox.critical(self, "Fehler", f"Datei konnte nicht geladen werden: {e}")
+            self.show_status(f"❌ Fehler beim Laden: {str(e)[:50]}", success=False, duration=8000)
 
     def save_json(self):
         if not self.is_connected():
-            QMessageBox.warning(self, "Validierung", "Netzwerk ist nicht zusammenhängend!")
+            self.show_status("❌ Netzwerk nicht zusammenhängend", success=False, duration=6000)
             return
         path, _ = QFileDialog.getSaveFileName(self, "JSON Speichern", "", "JSON Files (*.json)")
         if path:
@@ -386,11 +427,14 @@ class MainWindow(QMainWindow):
             }
             with open(path, "w") as f:
                 json.dump(data, f, indent=4)
+            self.show_status(f"✓ Gespeichert: {Path(path).name}", success=True)
 
     def export_svg(self):
-        if not self.canvas.nodes: return
+        if not self.canvas.nodes: 
+            self.show_status("❌ Kein Netzwerk vorhanden", success=False)
+            return
         if not self.is_connected():
-            QMessageBox.warning(self, "Validierung", "Netzwerk ist nicht zusammenhängend.")
+            self.show_status("❌ Netzwerk nicht zusammenhängend", success=False, duration=6000)
             return
 
         xs = [n.pos().x() for n in self.canvas.nodes]
@@ -420,6 +464,7 @@ class MainWindow(QMainWindow):
                     f.write(f'  <text x="{n.pos().x()}" y="{n.pos().y()}" font-family="Arial" font-size="10" font-weight="bold" text-anchor="middle" fill="#2c3e50" dy=".35em">{n.label_text}</text>\n')
                 
                 f.write('</svg>')
+            self.show_status(f"✓ SVG exportiert: {Path(path).name}", success=True)
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)

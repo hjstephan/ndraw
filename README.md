@@ -75,7 +75,8 @@ python3 gen_icon.py
 | Knoten erstellen | Linksklick auf freien Bereich |
 | Knoten verbinden | Rechtsklick auf Startknoten → Rechtsklick auf Zielknoten |
 | Knoten verschieben | Linksklick halten und ziehen |
-| Knoten/Kante selektieren | Linksklick auf Element |
+| Knoten selektieren | Linksklick auf Knoten |
+| Kante selektieren | Linksklick auf Spitze der Kante |
 | Mehrfachselektion | Strg + Linksklick |
 | Knoten umbenennen | Maus über Knoten bewegen + F2 drücken |
 | Bearbeitung beenden | Enter drücken oder außerhalb des Labels klicken |
